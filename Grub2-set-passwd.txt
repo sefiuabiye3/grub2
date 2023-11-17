@@ -1,0 +1,59 @@
+Follow the steps below to password protect GRUB2 in RHEL 7.
+1. Remove –unrestricted from the main CLASS= declaration in /etc/grub.d/10_linux file.
+This can be done by using sed to replace the
+sed -i "/^CLASS=/s/ --unrestricted//" /etc/grub.d/10_linux
+
+2. If a user hasn’t already been configured, use grub2-setpassword to set a password for the root user : 
+grub2-setpassword
+
+This creates a file /boot/grub2/user.cfg if not already present, which contains the hashed GRUB bootloader password. This utility only supports configurations where there is a single root user.
+Example /boot/grub2/user.cfg file :
+
+cat /boot/grub2/user.cfg
+
+3. Recreate the grub config with grub2-mkconfig :
+grub2-mkconfig -o /boot/grub2/grub.cfg
+Generating grub configuration file ...
+Found linux image: /boot/vmlinuz-3.10.0-327.el7.x86_64
+Found initrd image: /boot/initramfs-3.10.0-327.el7.x86_64.img
+Found linux image: /boot/vmlinuz-0-rescue-f9725b0c842348ce9e0bc81968cf7181
+Found initrd image: /boot/initramfs-0-rescue-f9725b0c842348ce9e0bc81968cf7181.img
+done
+
+4. Reboot the server and verify.
+shutdown -r now
+
+Note that all defined grub menu entries will now require entering user & password each time at boot; henceforth, the system will not boot any kernel without direct user intervention from the console. When prompted for user, enter “root”. When prompted for password, enter whatever was passed to the grub2-setpassword command :
+=========================
+
+Remove password protection
+To remove the password protection we can add the –unrestricted text in the main CLASS= declaration in /etc/grub.d/10_linux file again. Another way is to remove the /boot/grub2/user.cfg file which stores the hashed GRUB bootloader password.
+rm -f /boot/grub2/user.cfg
+
+(Credits: https://www.thegeekdiary.com/centos-r...)
+==============================
+Break/Remove the forgotten GRUB2 Password: (in case you don't know the root password)
+---
+If you don't know the GRUB password you can't easily reset the forgotten root password. So to reset the root password or remove the GRUB password in such scenario you need to boot up your server with iso image.
+
+1. Boot with ISO image.
+
+2. Select troubleshooting option.
+
+3. From Troubleshooting options select Rescue a CentOS/RedHat Linux system option.
+
+4. Now select the first option which mounts the installed Linux in /mnt/sysimage directory.
+
+5. Now run following commands
+
+#chroot /mnt/sysimage
+#ls
+
+6. Open /etc/grub2.cfg file in vi editor and comment user credential lines (username, export & password lines as shown in video):
+vim /etc/grub2.cfg
+Exit and Reboot again with HDD.
+
+You are done.
+==============================================
+Thanks for watching the video. Please like our videos, share with your friends and feel free to ask anything, post your queries in comments section. We will feel glad to answer your question. And don't forget to subscribe the channel.
+==================================================
