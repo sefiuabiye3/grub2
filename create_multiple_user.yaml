@@ -1,0 +1,56 @@
+---
+- name: Create users and configure SSH key-based authentication
+  hosts: localhost
+  vars:
+    users:
+      - { name: user1, uid: 6000 }
+      - { name: user2, uid: 6001 }
+      - { name: user3, uid: 6002 }
+      - { name: user4, uid: 6003 }
+      - { name: user5, uid: 6004 }
+  
+  tasks:
+    - name: Create users
+      ansible.builtin.user:
+        name: "{{ item.name }}"
+        uid: "{{ item.uid }}"
+        group: wheel
+        state: present
+        create_home: yes
+      loop: "{{ users }}"
+    
+    - name: Generate SSH key pair for each user
+      ansible.builtin.openssh_keypair:
+        path: "/home/{{ item.name }}/.ssh/id_rsa"
+        type: rsa
+        size: 2048
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0600'
+      loop: "{{ users }}"
+    
+    - name: Set permissions on .ssh directory
+      ansible.builtin.file:
+        path: "/home/{{ item.name }}/.ssh"
+        state: directory
+        owner: "{{ item.name }}"
+        group: "{{ item.name }}"
+        mode: '0700'
+      loop: "{{ users }}"
+
+    - name: Copy public key to remote VM
+      ansible.builtin.shell: |
+        ssh-copy-id -i /home/{{ item.name }}/.ssh/id_rsa.pub {{ remote_user }}@{{ remote_host }}
+      loop: "{{ users }}"
+      become: yes
+      become_user: "{{ item.name }}"
+
+    - name: Verify SSH connectivity
+      ansible.builtin.shell: |
+        ssh -o BatchMode=yes -o ConnectTimeout=5 {{ remote_user }}@{{ remote_host }} 'echo SSH connection successful for {{ item.name }}'
+      loop: "{{ users }}"
+      register: ssh_test_results
+
+    - name: Debug SSH connectivity results
+      ansible.builtin.debug:
+        var: ssh_test_results.results
